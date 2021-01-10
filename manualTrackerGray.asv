@@ -9,12 +9,12 @@ filename = 'GreenSharpie.wmv';
 outFilename = 'output.avi';
 videoFileReader = vision.VideoFileReader(which(filename));
 
-RGB = true;
+RGB = tu
 %reading a single image from video - for start
 if RGB
     videoFrame = double(step(videoFileReader));
 else
-    videoFrame = double(rgb2gray(step(videoFileReader)));
+    videoFrame = double(step(videoFileReader));
 end
 figure; imshow(videoFrame);
 selcetedBox = drawrectangle();
@@ -41,13 +41,9 @@ while ~isDone(videoFileReader) %untill video is finished
 %for i=1:20
     % Extract the next video frame
     lastVideoFrame = videoFrame;
-    if RGB
-        videoFrame = double(step(videoFileReader));
-    else
-        videoFrame = double(rgb2gray(step(videoFileReader)));
-    end
+    videoFrame = double(rgb2gray(step(videoFileReader)));
     %tracking the object
-    [BBox, minError,searchBBox] = serachingAlgo(lastVideoFrame,videoFrame, BBox);
+    [BBox, minError,searchBBox] = serachingAlgo(lastVideoFrame,videoFrame, BBox, 10);
     % Insert a bounding box around the object being tracked
     videoOut = insertObjectAnnotation(videoFrame,'rectangle',BBox,'object');
     %videoOut = insertObjectAnnotation(videoOut,'rectangle',searchBBox,'searchErea');
@@ -67,11 +63,10 @@ command = strcat('"C:\\Program Files (x86)\\Windows Media Player\\wmplayer.exe" 
 system(command);
 
 %% searching function
-function [newBBox, newMinError,searchBBox] = serachingAlgo(lastVideoFrame, videoFrame, BBox)
+function [newBBox, newMinError,searchBBox] = serachingAlgo(lastVideoFrame, videoFrame, BBox, bound)
 	newBBox = BBox;
 	newMinError = inf;
-    bound = 10;
-    Nbins = 16; %default is 256
+
 	%initialize histogram
 	x = int16(BBox(1));
 	y = int16(BBox(2));
@@ -95,7 +90,7 @@ function [newBBox, newMinError,searchBBox] = serachingAlgo(lastVideoFrame, video
 	for x=x_min:x_max 
 		for y=y_min:y_max
             tmpImage = videoFrame(y:y+h-1, x:x+w-1);
-			error = errorFunction(tmpImage, Object,Nbins);
+			error = errorFunction(tmpImage, Object);
 			if error < newMinError
                 %disp(error);
                 %disp(newBBox);
