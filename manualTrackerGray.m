@@ -1,11 +1,13 @@
 %%Signal Processing Laboratory - Project 2 - task 9
 %Ori Sade - 318262128
 %Liav Cohen - 209454693
+%% Initialization
+
 clc;
 clear;
 close all;
 %opening video for reading
-filename = 'GreenSharpie.wmv';
+filename = 'Harry.avi';
 outFilename = 'output.avi';
 videoFileReader = vision.VideoFileReader(which(filename));
 
@@ -23,17 +25,20 @@ close;
 %opening a video object for playing the video
 videoInfo = info(videoFileReader); % information about the source video
 videoPlayer = vision.VideoPlayer('Position',[300 300 videoInfo.VideoSize+30]);
+%BAR INFO
 numberOfFrames = videoInfo.VideoFrameRate*mmfileinfo(filename).Duration;
 %creating an object for writing a video to it
 v = VideoWriter(outFilename);
 open(v);
 
 %writing first frame to video
-videoOut = insertObjectAnnotation(videoFrame,'rectangle',BBox,'object');
-writeVideo(v,videoOut);
+%videoOut = insertObjectAnnotation(videoFrame,'rectangle',BBox,'object');
+%writeVideo(v,videoOut);
 minError = inf;
 %the process of tracking the selected image
 frameNumber=0;
+
+%% algorithem
 waitBarObject = waitbar(frameNumber,'Please wait...');
 while ~isDone(videoFileReader) %untill video is finished
     waitbar(frameNumber/numberOfFrames,waitBarObject, sprintf('Please wait... Tracking in progress (%.3f%%)',frameNumber/numberOfFrames*100));
@@ -50,14 +55,15 @@ while ~isDone(videoFileReader) %untill video is finished
     [BBox, minError,searchBBox] = serachingAlgo(lastVideoFrame,videoFrame, BBox);
     % Insert a bounding box around the object being tracked
     videoOut = insertObjectAnnotation(videoFrame,'rectangle',BBox,'object');
-    %videoOut = insertObjectAnnotation(videoOut,'rectangle',searchBBox,'searchErea');
+    videoOut = insertObjectAnnotation(videoOut,'rectangle',searchBBox,'searchErea');
     % Display the annotated video frame using the video player object
-    %step(videoPlayer, videoOut);
+    step(videoPlayer, videoOut);
     % Write frame to output video
     writeVideo(v,videoOut);
 end
-
+disp(~isDone(videoFileReader));
 close(waitBarObject);
+%%
 % Release resources
 release(videoFileReader);
 release(videoPlayer);
@@ -70,8 +76,7 @@ system(command);
 function [newBBox, newMinError,searchBBox] = serachingAlgo(lastVideoFrame, videoFrame, BBox)
 	newBBox = BBox;
 	newMinError = inf;
-    bound = 10;
-    Nbins = 16; %default is 256
+    bound = 20;
 	%initialize histogram
 	x = int16(BBox(1));
 	y = int16(BBox(2));
@@ -92,20 +97,17 @@ function [newBBox, newMinError,searchBBox] = serachingAlgo(lastVideoFrame, video
         return
     end
 	%seraching in a radius of 'bound' around the selected image (BBox)
-	for x=x_min:x_max 
+   errorFunction(Object,0,"loadHist");
+    for x=x_min:x_max 
 		for y=y_min:y_max
             tmpImage = videoFrame(y:y+h-1, x:x+w-1);
-			error = errorFunction(tmpImage, Object,Nbins);
+			error = errorFunction(0, tmpImage, "");
 			if error < newMinError
-                %disp(error);
-                %disp(newBBox);
-                %disp(BBox);
 				newMinError = error;
 				newBBox = [x y w h];
 			end
 		end
-	end
-
+    end
 end	%end function
 
 
