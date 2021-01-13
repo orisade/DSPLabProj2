@@ -1,22 +1,25 @@
 %%Signal Processing Laboratory - Project 2 - task 9
 %Ori Sade - 318262128
 %Liav Cohen - 209454693
-%% Initialization
-
 clc;
 clear;
 close all;
-%opening video for reading
-filename = 'Harry.avi';
+%% user inputs
+filename = 'Fox.wmv';
 outFilename = 'output.avi';
-videoFileReader = vision.VideoFileReader(which(filename));
+Nbins=16;   %for RGB this value is equal to Nbins^3 {RGB matrix}.
+RGB = false;
 
-RGB = true;
-%reading a single image from video - for start
+%% Initialization - reading first Image and select object
+%reading a single image from video
+videoFileReader = vision.VideoFileReader(which(filename));
 if RGB
     videoFrame = double(step(videoFileReader));
+    videoFrameFit = convertRGB(videoFrame,Nbins);    
+    lastVideoFrame = videoFrameFit;
 else
     videoFrame = double(rgb2gray(step(videoFileReader)));
+    lastVideoFrame = videoFrame;
 end
 figure; imshow(videoFrame);
 selcetedBox = drawrectangle();
@@ -30,31 +33,33 @@ numberOfFrames = videoInfo.VideoFrameRate*mmfileinfo(filename).Duration;
 %creating an object for writing a video to it
 v = VideoWriter(outFilename);
 open(v);
-
 %writing first frame to video
-%videoOut = insertObjectAnnotation(videoFrame,'rectangle',BBox,'object');
-%writeVideo(v,videoOut);
+videoOut = insertObjectAnnotation(videoFrame,'rectangle',BBox,'object');
+writeVideo(v,videoOut);
 minError = inf;
 %the process of tracking the selected image
 frameNumber=0;
 
-%% algorithem
+%% Main loop
 waitBarObject = waitbar(frameNumber,'Please wait...');
 while ~isDone(videoFileReader) %untill video is finished
     waitbar(frameNumber/numberOfFrames,waitBarObject, sprintf('Please wait... Tracking in progress (%.3f%%)',frameNumber/numberOfFrames*100));
     frameNumber=frameNumber+1;
 %for i=1:20
     % Extract the next video frame
-    lastVideoFrame = videoFrame;
     if RGB
-        videoFrame = double(step(videoFileReader));
+        videoFrameDisplay = double(step(videoFileReader));
+        videoFrame = convertRGB(videoFrameDisplay,Nbins);
     else
-        videoFrame = double(rgb2gray(step(videoFileReader)));
+        videoFrameDisplay = double(rgb2gray(step(videoFileReader)));
+        videoFrame = videoFrameDisplay;
     end
     %tracking the object
-    [BBox, minError,searchBBox] = serachingAlgo(lastVideoFrame,videoFrame, BBox);
+    [BBox, minError,searchBBox] = serachingAlgo(lastVideoFrame,videoFrame, BBox,Nbins);
+    %save last frame
+    lastVideoFrame = videoFrame;
     % Insert a bounding box around the object being tracked
-    videoOut = insertObjectAnnotation(videoFrame,'rectangle',BBox,'object');
+    videoOut = insertObjectAnnotation(videoFrameDisplay,'rectangle',BBox,'object');
     videoOut = insertObjectAnnotation(videoOut,'rectangle',searchBBox,'searchErea');
     % Display the annotated video frame using the video player object
     step(videoPlayer, videoOut);
@@ -63,7 +68,8 @@ while ~isDone(videoFileReader) %untill video is finished
 end
 disp(~isDone(videoFileReader));
 close(waitBarObject);
-%%
+
+%% Saving results
 % Release resources
 release(videoFileReader);
 release(videoPlayer);
@@ -72,43 +78,8 @@ close(v);
 command = strcat('"C:\\Program Files (x86)\\Windows Media Player\\wmplayer.exe" "', which(outFilename), '"');
 system(command);
 
-%% searching function
-function [newBBox, newMinError,searchBBox] = serachingAlgo(lastVideoFrame, videoFrame, BBox)
-	newBBox = BBox;
-	newMinError = inf;
-    bound = 20;
-	%initialize histogram
-	x = int16(BBox(1));
-	y = int16(BBox(2));
-	w = int16(BBox(3));
-	h = int16(BBox(4));
-	%ROICenter = [x+w/2 y+h/2];
 
-	%% Searching algorithem
-	Object = lastVideoFrame(y:y+h-1, x:x+w-1);
-    [y_max, x_max] = size(videoFrame);
-    x_max = min([x+bound, x_max-w-1]);
-    x_min = max([1,x-bound]);
-    y_max = min([y+bound, y_max-h-1]);
-    y_min = max([1,y-bound]);
-    searchBBox = [x_min, y_min, x_max-x_min+w, y_max-y_min+h];
-    if x_min >= x_max || y_min >= y_max
-        disp('min is bigger than max!');
-        return
-    end
-	%seraching in a radius of 'bound' around the selected image (BBox)
-   errorFunction(Object,0,"loadHist");
-    for x=x_min:x_max 
-		for y=y_min:y_max
-            tmpImage = videoFrame(y:y+h-1, x:x+w-1);
-			error = errorFunction(0, tmpImage, "");
-			if error < newMinError
-				newMinError = error;
-				newBBox = [x y w h];
-			end
-		end
-    end
-end	%end function
+
 
 
 
