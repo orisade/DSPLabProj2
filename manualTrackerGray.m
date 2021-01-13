@@ -5,10 +5,10 @@ clc;
 clear;
 close all;
 %% user inputs
-filename = 'Fox.wmv';
-outFilename = 'results\\output.avi';
+filename = 'YMCA.wmv';
+outFilename = 'output.avi';
 Nbins=16;   %for RGB this value is equal to Nbins^3 {RGB matrix}.
-RGB = false;
+RGB = true;
 bound = 20;
 %% Initialization - reading first Image and select object
 %reading a single image from video according to RGB or GrayScale
@@ -51,7 +51,7 @@ while ~isDone(videoFileReader) %untill video is finished
         videoFrame = videoFrameDisplay;
     end
     %tracking the object
-    [BBox, searchBBox] = serachingAlgo(lastVideoFrame,videoFrame, BBox,bound,Nbins);
+    [BBox, searchBBox] = searchingAlgo(lastVideoFrame,videoFrame, BBox,bound,Nbins);
     %save last frame
     lastVideoFrame = videoFrame;
     % Insert a bounding box around the object being tracked
