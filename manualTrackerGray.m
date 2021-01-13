@@ -6,47 +6,43 @@ clear;
 close all;
 %% user inputs
 filename = 'Fox.wmv';
-outFilename = 'output.avi';
+outFilename = 'results\\output.avi';
 Nbins=16;   %for RGB this value is equal to Nbins^3 {RGB matrix}.
 RGB = false;
-
+bound = 20;
 %% Initialization - reading first Image and select object
-%reading a single image from video
+%reading a single image from video according to RGB or GrayScale
 videoFileReader = vision.VideoFileReader(which(filename));
 if RGB
     videoFrame = double(step(videoFileReader));
-    videoFrameFit = convertRGB(videoFrame,Nbins);    
-    lastVideoFrame = videoFrameFit;
+    lastVideoFrame = convertRGB(videoFrame,Nbins);    
 else
     videoFrame = double(rgb2gray(step(videoFileReader)));
     lastVideoFrame = videoFrame;
 end
 figure; imshow(videoFrame);
-selcetedBox = drawrectangle();
-BBox = selcetedBox.Position;
+selcetedBox = drawrectangle();  %taking user imput of rectangle
+BBox = selcetedBox.Position;    %extracting the BBox
 close;
-%opening a video object for playing the video
+
+%% opening a video objects for playing the video and saving it
 videoInfo = info(videoFileReader); % information about the source video
 videoPlayer = vision.VideoPlayer('Position',[300 300 videoInfo.VideoSize+30]);
-%BAR INFO
-numberOfFrames = videoInfo.VideoFrameRate*mmfileinfo(filename).Duration;
-%creating an object for writing a video to it
 v = VideoWriter(outFilename);
 open(v);
 %writing first frame to video
 videoOut = insertObjectAnnotation(videoFrame,'rectangle',BBox,'object');
 writeVideo(v,videoOut);
-minError = inf;
-%the process of tracking the selected image
-frameNumber=0;
 
 %% Main loop
+numberOfFrames = videoInfo.VideoFrameRate*mmfileinfo(filename).Duration;
+frameNumber=0;
 waitBarObject = waitbar(frameNumber,'Please wait...');
 while ~isDone(videoFileReader) %untill video is finished
     waitbar(frameNumber/numberOfFrames,waitBarObject, sprintf('Please wait... Tracking in progress (%.3f%%)',frameNumber/numberOfFrames*100));
     frameNumber=frameNumber+1;
-%for i=1:20
-    % Extract the next video frame
+    % Extract the next video frame, save copy of rgb for display, in
+    % grayscale this is the same one
     if RGB
         videoFrameDisplay = double(step(videoFileReader));
         videoFrame = convertRGB(videoFrameDisplay,Nbins);
@@ -55,7 +51,7 @@ while ~isDone(videoFileReader) %untill video is finished
         videoFrame = videoFrameDisplay;
     end
     %tracking the object
-    [BBox, minError,searchBBox] = serachingAlgo(lastVideoFrame,videoFrame, BBox,Nbins);
+    [BBox, searchBBox] = serachingAlgo(lastVideoFrame,videoFrame, BBox,bound,Nbins);
     %save last frame
     lastVideoFrame = videoFrame;
     % Insert a bounding box around the object being tracked
@@ -66,7 +62,6 @@ while ~isDone(videoFileReader) %untill video is finished
     % Write frame to output video
     writeVideo(v,videoOut);
 end
-disp(~isDone(videoFileReader));
 close(waitBarObject);
 
 %% Saving results
@@ -75,6 +70,7 @@ release(videoFileReader);
 release(videoPlayer);
 % Close output video
 close(v);
+%opening video file with wmplayer
 command = strcat('"C:\\Program Files (x86)\\Windows Media Player\\wmplayer.exe" "', which(outFilename), '"');
 system(command);
 

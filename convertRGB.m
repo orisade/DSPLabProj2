@@ -1,4 +1,6 @@
 function newI=convertRGB(I,Nbins)
+%% converting RGB image to one dimention image where we have Nbins^3 colors
+% those colored are mapped into [0,1]. Each R/G/B have Nbins shades. 
         maxPixel = Nbins*Nbins^0+Nbins*Nbins^1+Nbins*Nbins^2;
         newI = zeros(size(I,1),size(I,2));
         for x=1:size(I,1)
